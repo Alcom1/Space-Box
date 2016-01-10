@@ -6,11 +6,12 @@ public class Player : MonoBehaviour
     public Rigidbody rb;                        //Rigidbody of player
 
     //Control fields that affect how the player handles.
+    public bool autoRoll;                       //Boolean if to use auto-roll
+    public bool strafe;                         //If strafing is enabled.
     public float maxRotateX;                    //maximum X axis rotation
     public float maxRotateY;                    //maximum Y axis rotation
     public int sensetivityRotateX;              //X axis rotation sensetivity
     public int sensetivityRotateY;              //Y axis rotation sensetivity
-    public bool autoRoll;                       //Boolean if to use auto-roll
     public int rollRate;                        //Rate of roll
     public int maxSpeed;                        //Maximum speed
     public int accelRate;                       //Acceleration strength
@@ -19,8 +20,10 @@ public class Player : MonoBehaviour
     public float moveDrag;                      //Movement drag
 
     //Fields for lerping. Player velocity lerps towards the intended direction of movement.
-    public float lerpMultiplier;                //Multiplier for velocity lerping.
-    private Vector3 lerpDir;                    //Direction to move and lerp in.
+    public float velToMainLerpMult;             //Multiplier for lerping mainDir towards inputDir.
+    public float mainToInputLerpMult;           //Multiplier for lerping velocity towards mainDir.
+    private Vector3 mainDir;                    //Direction to move in.
+    private Vector3 inputDir;                   //Direction of input.
     private float lerpRate;                     //Scale (0-1) of lerping rigidbody velocity to forward
 
     //Fields for bounce physics. Player can be very bouncy or not bouncy at all.
@@ -34,7 +37,7 @@ public class Player : MonoBehaviour
     void Start()
     {
         //Init stuff
-        lerpDir = transform.forward;
+        mainDir = transform.forward;
         lerpRate = 1;
         maxBounceMultiplier = bounceMultiplier;
 
@@ -57,6 +60,8 @@ public class Player : MonoBehaviour
             UnityEngine.Cursor.visible = false;
             UnityEngine.Cursor.lockState = CursorLockMode.Locked;
         }
+
+        print(1 / Time.deltaTime);
     }
 
     //Left-Right movement
@@ -126,9 +131,13 @@ public class Player : MonoBehaviour
     void moveThrust()
     {
         //Key input for accelerate and deaccelerate
-        if ((Input.GetKey("w") || Input.GetKey("d") || Input.GetKey("a")) && rb.velocity.magnitude < maxSpeed)
+        if (
+            Input.GetKey("w") ||
+            (Input.GetKey("a") && strafe) ||
+            (Input.GetKey("d") && strafe) &&
+            rb.velocity.magnitude < maxSpeed)
         {
-            rb.AddForce(lerpDir * Time.deltaTime * accelRate);
+            rb.AddForce(mainDir * Time.deltaTime * accelRate);
         }
         else if (Input.GetKey("s"))
         {
@@ -148,30 +157,34 @@ public class Player : MonoBehaviour
         if (lerpRate > 1)
             lerpRate = 1f;
 
-
         //Lerp velocity to the direction of movement.
-        if (Input.GetKey("w") || Input.GetKey("d") || Input.GetKey("a"))
+        if (strafe && (Input.GetKey("w") || Input.GetKey("d") || Input.GetKey("a")))
         {
-            lerpDir = Vector3.zero; //Reset lerp direction
+            inputDir = Vector3.zero; //Reset lerp direction
 
             if (Input.GetKey("w"))  //Forward
             {
-                lerpDir += transform.forward;
+                inputDir += transform.forward;
             }
             if (Input.GetKey("d"))  //Strafe right
             {
-                lerpDir += transform.right;
+                inputDir += transform.right;
             }
             if (Input.GetKey("a"))  //Strafe left
             {
-                lerpDir += -transform.right;
+                inputDir += -transform.right;
             }
 
-            lerpDir = lerpDir.normalized;   //Normalize lerp direction.
+            inputDir = inputDir.normalized;   //Normalize lerp direction.
+        }
+        else if(!strafe)
+        {
+            inputDir = transform.forward;
         }
 
         //Perform lerp.
-        rb.velocity = Vector3.Lerp(rb.velocity, lerpDir * rb.velocity.magnitude, lerpMultiplier * lerpRate);
+        mainDir = Vector3.Lerp(inputDir, mainDir, mainToInputLerpMult);                                             //Lerp main towards the input vector.
+        rb.velocity = Vector3.Lerp(rb.velocity, mainDir * rb.velocity.magnitude, velToMainLerpMult * lerpRate);     //Lerp main towards the velocity vector.
 
         //Limit velocity to max speed after a single bounce. Prevents chaining bounces to get ludicrous speed.
         if (rb.velocity.magnitude > maxSpeed * bounceMultiplier)
