@@ -47,6 +47,13 @@ public class Player : MonoBehaviour
         moveRoll();
         moveThrust();
         moveManipulate();
+
+        //Lock cursor.
+        if (UnityEngine.Cursor.lockState != CursorLockMode.Locked)
+        {
+            UnityEngine.Cursor.visible = false;
+            UnityEngine.Cursor.lockState = CursorLockMode.Locked;
+        }
     }
 
     //Left-Right movement
