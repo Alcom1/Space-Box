@@ -37,6 +37,9 @@ public class Player : MonoBehaviour
         lerpDir = transform.forward;
         lerpRate = 1;
         maxBounceMultiplier = bounceMultiplier;
+
+        //Set inertia tensor to something that doesn't make the auto roll get all bizarro.
+        rb.inertiaTensor = new Vector3(0.2f, 0.2f, 0.2f);
     }
 
     // Update is called once per frame
