@@ -186,7 +186,7 @@ public class Player : MonoBehaviour
     }
 
     //Effects that occur upon collision.
-    public void CollideResolve()
+    void OnCollisionEnter(Collision collision)
     {
         lerpRate = 0;                       //Set lerping to 0. It'll increase to normal afterwards.
         rb.velocity *= bounceMultiplier;    //Multiply velocity by bounce multiplier.
